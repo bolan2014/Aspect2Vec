@@ -7,10 +7,15 @@
 """
 
 import os
+import logging
+
+logging.basicConfig(level=logging.DEBUG,
+                    format='%(asctime)s - %(filename)s[line:%(lineno)d] - %(levelname)s: %(message)s')
 
 
 class Configuration(object):
     def __init__(self, base_path, suffix, file_name=None):
+        self.logging = logging
         self.data_prefix = os.path.join(base_path, 'data', suffix)
         self.cache_prefix = os.path.join(base_path, 'cache', suffix)
 
@@ -24,5 +29,5 @@ class Configuration(object):
 
 if __name__ == '__main__':
     config = Configuration('../../', suffix='ebay-mlc', file_name='validation_set.tsv')
-    print(config.edge_file)
+    config.logging.info(config.edge_file)
     assert config.edge_file == '../../data/ebay-mlc/edges.txt'
