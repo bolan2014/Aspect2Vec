@@ -1,0 +1,73 @@
+import pandas as pd
+import json
+import re
+from collections import defaultdict
+from src.utils.config import Configuration
+
+pd.set_option("display.max_columns", None)
+pd.set_option("display.max_rows", None)
+pd.set_option("display.width", 500)
+pd.set_option("display.max_colwidth", 500)
+
+
+def split_mlc_aspects(attr_str, return_dict=False):
+    def data_check(attr_str):
+        attr_list = attr_str.split(',')
+        attr = ','.join(i for i in attr_list if i.find(':') > 0)
+        attr_list = attr.split(':')
+        attr = ':'.join(i for idx, i in enumerate(attr_list) if i.find(',') > 0 or idx == 0 or idx == len(attr_list) - 1)
+        return attr
+
+    attr_str = attr_str.replace('(', '').replace(')', '').replace('"', '').lower()
+    attr = ('{"' + data_check(attr_str) + '"}').replace(':', '":"').replace(',', '","')
+    try:
+        dic_attr = json.loads(attr)
+    except json.JSONDecodeError:
+        dic_attr = defaultdict(lambda: 'None')
+    if return_dict:
+        return dic_attr
+    else:
+        return '|'.join([f"{k}:{v}" for k, v in dic_attr.items()])
+
+
+def extract_flipkart_category(categ_str):
+    root_categ_re = re.compile('([\&\sa-z,]+\s\>\>)')
+
+    rs = root_categ_re.findall(categ_str.lower())
+    if rs:
+        return rs[0].replace('\"', '').replace(' >>', '')
+    else:
+        # print(categ_str)
+        return categ_str.lstrip('[').rstrip(']').strip('\"')
+
+
+# TODO split_flipkart_aspects():
+
+
+if __name__ == '__main__':
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--data')
+    args = parser.parse_args()
+    if args.data == 'mlc':
+        config = Configuration('../../', suffix='ebay-mlc')
+        df = pd.read_csv(config.mlc_origin_data, sep='\t')
+        df = df[["index", "leaf_categ_id", "attributes", "auct_titl", "cluster"]]
+        df = df.rename(columns={"index": "uniq_id", "leaf_categ_id": "category", "auct_titl": "title", "attributes": "aspects"})
+        df["aspects"] = df["aspects"].apply(lambda x: split_mlc_aspects(x))
+        df.to_csv(config.mlc_data_file, sep='\t', header=True, index=False)
+
+    elif args.data == 'flipkart':
+        config = Configuration('../../', suffix='flipkart')
+        df = pd.read_csv(config.flipkart_origin_data, sep=',')
+        df = df[["uniq_id", "product_category_tree", "product_specifications", "product_url", "brand", "product_name"]]
+        df = df.rename(columns={"product_category_tree": "category", "product_specifications": "aspects", "product_name": "cluster"})
+        print(df.columns)
+        print(df.shape)
+        df["category"] = df["category"].apply(lambda x: extract_flipkart_category(x))
+        d = pd.DataFrame(df["category"].value_counts())
+
+        categ_filter = [v for v, c in pd.DataFrame(df["category"].value_counts()).iterrows() if c[0] >= 10]
+        df = df[df["category"].isin(categ_filter)]
+        print(df["category"].value_counts())
+        print(df.shape)
