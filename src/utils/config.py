@@ -10,7 +10,7 @@ import os
 
 
 class Configuration(object):
-    def __init__(self, base_path, suffix, file_name):
+    def __init__(self, base_path, suffix, file_name=None):
         self.data_prefix = os.path.join(base_path, 'data', suffix)
         self.cache_prefix = os.path.join(base_path, 'cache', suffix)
 
