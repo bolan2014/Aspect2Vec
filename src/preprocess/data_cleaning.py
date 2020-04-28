@@ -40,7 +40,7 @@ def extract_flipkart_category(categ_str):
         return categ_str.lstrip('[').rstrip(']').strip('\"')
 
 
-def clean_flipkart_aspects(aspt_str):
+def clean_flipkart_aspects(aspt_str, brand_str=None):
     def flipkart_aspt_data_check(aspt_str):
         if not isinstance(aspt_str, str):
             return None
@@ -67,8 +67,9 @@ def clean_flipkart_aspects(aspt_str):
             aspt_dict[key] = value
         except IndexError:
             print("lost key or value", i)
+    if isinstance(brand_str, str):
+        aspt_dict["brand"] = brand_str.lower().strip()
     return '|'.join([f"{k}: {v}" for k, v in aspt_dict.items()])
-
 
 
 if __name__ == '__main__':
@@ -105,9 +106,10 @@ if __name__ == '__main__':
         print(df["category"].value_counts())
         print("dataset shape after cleaning the category: ", df.shape)
 
-        df["aspects"] = df["aspects"].apply(lambda x: clean_flipkart_aspects(x))
+        df["aspects"] = df.apply(lambda x: clean_flipkart_aspects(x["aspects"], x["brand"]), axis=1)
         df = df[df["aspects"] != "None"]
         print("dataset shape after cleaning the aspects: ", df.shape)
+        print(df.head())
 
         df.sort_values(by="category", inplace=True)
         df.to_csv(config.cleaned_data_file, sep='\t', header=True, index=False)
