@@ -23,6 +23,8 @@ class Configuration(object):
         self.weighted_edge_file = os.path.join(self.data_prefix, 'weighted_edges.txt')
         self.id_to_aspect_cache = os.path.join(self.cache_prefix, 'id_to_aspect.pkl')
         self.aspect_to_id_cache = os.path.join(self.cache_prefix, 'aspect_to_id.pkl')
+        self.aspect_key_val_cache = os.path.join(self.cache_prefix, 'aspect_key_val.pkl')
+
         self.edge_cache = os.path.join(self.cache_prefix, 'edges.pkl')
         self.edge_label_file = os.path.join(self.data_prefix, 'edge_labels.txt')
         self.edge_label_cache = os.path.join(self.cache_prefix, 'edge_labels.pkl')
