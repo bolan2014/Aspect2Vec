@@ -22,7 +22,7 @@ class GraphExtractor:
         self.dump_file = dump_file
         self.item_aspect = self.get_aspect_from_file()
         self.aspect_keys, self.aspect_vals = self.flatten()
-        self.aspect_id_mapping, self.id_aspect_mapping, self.aspect_key_val_mapping = self.build_encoder()
+        self.aspect_id_mapping, self.id_aspect_mapping, self.aspect_val_key_mapping = self.build_encoder()
         self.edges = self.make_edges()
 
     def get_aspect_from_file(self):
@@ -45,7 +45,7 @@ class GraphExtractor:
         aspect_keys, aspect_vals = [], []
         for aspects in tqdm(self.item_aspect):
             for aspect in aspects:
-                print(aspect)
+                # print(aspect)
                 key, val = aspect.split(': ')
                 aspect_keys.append(key)
                 aspect_vals.append(val)
@@ -77,9 +77,9 @@ class GraphExtractor:
 
         aspect_key_ids, aspect_val_ids = \
             aspect_key_le.transform(self.aspect_keys), aspect_val_le.transform(self.aspect_vals)
-        aspect_key_val_mapping = dict(zip(aspect_key_ids, aspect_val_ids))
+        aspect_val_key_mapping = dict(zip(aspect_key_ids, aspect_val_ids))
 
-        return aspect_id_mapping, id_aspect_mapping, aspect_key_val_mapping
+        return aspect_id_mapping, id_aspect_mapping, aspect_val_key_mapping
 
     def make_pairs(self, aspects: list):
         """
@@ -139,14 +139,14 @@ class GraphExtractor:
                 pickle.dump(self.id_aspect_mapping, handler, protocol=pickle.HIGHEST_PROTOCOL)
 
             # dump aspect key value mapping
-            with open(self.cf.aspect_key_val_cache, 'wb') as handler:
-                pickle.dump(self.aspect_key_val_mapping, handler, protocol=pickle.HIGHEST_PROTOCOL)
+            with open(self.cf.edge_label_cache, 'wb') as handler:
+                pickle.dump(self.aspect_val_key_mapping, handler, protocol=pickle.HIGHEST_PROTOCOL)
 
             self.logging.info('Done')
 
 
 if __name__ == '__main__':
-    # config = Configuration('../', suffix='ebay-mlc', file_name='validation_set.tsv')
-    config = Configuration('../', suffix='flipkart', file_name='flipkart_com-ecommerce_sample.csv')
+    config = Configuration('../', suffix='ebay-mlc', file_name='validation_set.tsv')
+    # config = Configuration('../', suffix='flipkart', file_name='flipkart_com-ecommerce_sample.csv')
     kg_extractor = GraphExtractor(cf=config, dump_file=True)
     kg_extractor.dump_to_file()
