@@ -29,6 +29,7 @@ class Configuration(object):
         self.edge_label_cache = os.path.join(self.cache_prefix, 'edge_labels.pkl')
         self.origin_file = os.path.join(self.data_prefix, file_name)
         self.cleaned_data_file = os.path.join(self.data_prefix, '{}_dataset.tsv'.format(suffix))
+        self.pairset_data_file = os.path.join(self.data_prefix, '{}_pairset.tsv'.format(suffix))
 
 
 if __name__ == '__main__':

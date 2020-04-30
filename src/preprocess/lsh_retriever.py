@@ -50,9 +50,9 @@ class LshRetriever(object):
             return None
 
     def dump_lsh(self, file_name):
-        with open(os.path.join("../cache", file_name+str(self.category)+'_'+str(self.threshold)+".pkl"), 'wb') as fw:
+        with open(os.path.join("../../cache", file_name+('_'.join(self.category))+'_'+str(self.threshold)+".pkl"), 'wb') as fw:
             pickle.dump(self.lsh, fw)
 
     def load_lsh(self, file_name):
-        with open(os.path.join("../cache", file_name+str(self.category)+'_'+str(self.threshold)+".pkl"), 'rb') as fr:
+        with open(os.path.join("../../cache", file_name+('_'.join(self.category))+'_'+str(self.threshold)+".pkl"), 'rb') as fr:
             self.lsh = pickle.load(fr)
