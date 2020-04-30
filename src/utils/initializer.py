@@ -21,7 +21,7 @@ class GraphInitializer(object):
         self.logging = cf.logging
         self.graph = self.build_graph()
         self.node_labels = self.get_node_label()
-        # self.node_index = self.get_node_index()
+        self.node_index = self.get_node_name()
 
     def build_graph(self):
         """
@@ -29,9 +29,9 @@ class GraphInitializer(object):
         example of edge line: 1 2\n
         :return:
         """
-        if os.path.exists(self.cf.edge_cache):
+        if os.path.exists(self.cf.graph_cache):
             self.logging.info("load graph from cache file ...")
-            G = nx.read_gpickle(path=self.cf.edge_cache)
+            G = nx.read_gpickle(path=self.cf.graph_cache)
             self.logging.info("load {} nodes and {} edges from data".format(len(G.nodes), len(G.edges())))
             return G
         else:
@@ -43,10 +43,10 @@ class GraphInitializer(object):
                 for edge, weight in edge_counter.items():
                     # freshness between 2 nodes is initialized to 1
                     weighted_edges.append("{} {} 1".format(edge, weight))
-                G = nx.parse_edgelist(weighted_edges, nodetype=str, data=(('weight', float), ('freshness', float)))
+                G = nx.parse_edgelist(weighted_edges, nodetype=int, data=(('weight', float), ('freshness', float)))
                 self.logging.info("load {} nodes and {} edges from data".format(len(G.nodes), len(G.edges())))
                 # save to cache file
-                nx.write_gpickle(G, path=self.cf.edge_cache)
+                nx.write_gpickle(G, path=self.cf.graph_cache)
 
                 return G
 
@@ -61,12 +61,12 @@ class GraphInitializer(object):
             self.logging.info("load {} node labels from cache file".format(len(labels)))
             return labels
 
-    def get_node_index(self):
+    def get_node_name(self):
         """
         get value from idx -> aspect name
         :return:
         """
-        with open(self.cf.node_index_cache, "rb") as handler:
+        with open(self.cf.id_to_aspect_cache, "rb") as handler:
             names = pickle.load(handler)
             self.logging.info("load {} node names from cache file".format(len(names)))
             return names

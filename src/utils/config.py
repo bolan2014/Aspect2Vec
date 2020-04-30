@@ -24,7 +24,7 @@ class Configuration(object):
         self.id_to_aspect_cache = os.path.join(self.cache_prefix, 'id_to_aspect.pkl')
         self.aspect_to_id_cache = os.path.join(self.cache_prefix, 'aspect_to_id.pkl')
 
-        self.edge_cache = os.path.join(self.cache_prefix, 'edges.pkl')
+        self.graph_cache = os.path.join(self.cache_prefix, 'graph.pkl')
         self.edge_label_file = os.path.join(self.data_prefix, 'edge_labels.txt')
         self.edge_label_cache = os.path.join(self.cache_prefix, 'edge_labels.pkl')
         self.origin_file = os.path.join(self.data_prefix, file_name)

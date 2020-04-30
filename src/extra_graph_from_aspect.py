@@ -77,7 +77,8 @@ class GraphExtractor:
 
         aspect_key_ids, aspect_val_ids = \
             aspect_key_le.transform(self.aspect_keys), aspect_val_le.transform(self.aspect_vals)
-        aspect_val_key_mapping = dict(zip(aspect_key_ids, aspect_val_ids))
+        aspect_val_key_mapping = dict(zip(aspect_val_ids, aspect_key_ids))
+        self.logging.info('aspect key value pair size: {}'.format(len(aspect_val_key_mapping)))
 
         return aspect_id_mapping, id_aspect_mapping, aspect_val_key_mapping
 
