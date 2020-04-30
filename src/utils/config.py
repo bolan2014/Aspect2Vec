@@ -14,7 +14,7 @@ logging.basicConfig(level=logging.DEBUG,
 
 
 class Configuration(object):
-    def __init__(self, base_path, suffix, file_name=None):
+    def __init__(self, base_path, suffix, file_name=''):
         self.logging = logging
         self.data_prefix = os.path.join(base_path, 'data', suffix)
         self.cache_prefix = os.path.join(base_path, 'cache', suffix)
