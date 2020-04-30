@@ -21,8 +21,8 @@ class GraphExtractor:
         self.delimiter = delimiter
         self.dump_file = dump_file
         self.item_aspect = self.get_aspect_from_file()
-        self.aspects = self.flatten()
-        self.aspect_id_mapping, self.id_aspect_mapping = self.build_encoder()
+        self.aspect_keys, self.aspect_vals = self.flatten()
+        self.aspect_id_mapping, self.id_aspect_mapping, self.aspect_val_key_mapping = self.build_encoder()
         self.edges = self.make_edges()
 
     def get_aspect_from_file(self):
@@ -42,20 +42,31 @@ class GraphExtractor:
         return item_aspect
 
     def flatten(self):
-        total_aspects = [aspect for aspects in self.item_aspect for aspect in aspects]
+        aspect_keys, aspect_vals = [], []
+        for aspects in tqdm(self.item_aspect):
+            for aspect in aspects:
+                # print(aspect)
+                key, val = aspect.split(': ')
+                aspect_keys.append(key)
+                aspect_vals.append(val)
+        assert len(aspect_keys) == len(aspect_vals)
         # example: ['inseam: 28', 'size type: regular', 'rise: mid-rise', 'wash: colored']
-        self.logging.info('total aspect size: {}'.format(len(total_aspects)))
-        return total_aspects
+        self.logging.info('total aspect size: {}'.format(len(aspect_keys)))
+        return aspect_keys, aspect_vals
 
     def build_encoder(self):
         """
         :return: two mappings
         """
-        encoder = preprocessing.LabelEncoder()
-        self.logging.info('build node encoder ...')
-        encoder.fit(self.aspects)
+        aspect_key_le = preprocessing.LabelEncoder()
+        self.logging.info('build aspect key encoder ...')
+        aspect_key_le.fit(self.aspect_keys)
 
-        classes, ids = encoder.classes_, encoder.transform(encoder.classes_)
+        aspect_val_le = preprocessing.LabelEncoder()
+        self.logging.info('build aspect value encoder ...')
+        aspect_val_le.fit(self.aspect_vals)
+
+        classes, ids = aspect_val_le.classes_, aspect_val_le.transform(aspect_val_le.classes_)
         id_aspect_mapping = dict(zip(ids, classes))
         aspect_id_mapping = dict(zip(classes, ids))
         try:
@@ -63,7 +74,12 @@ class GraphExtractor:
         except AssertionError:
             self.logging.debug('mapping size not equal: {} vs {}'.format(len(id_aspect_mapping), len(aspect_id_mapping)))
         self.logging.info('unique aspect size: {}'.format(len(id_aspect_mapping)))
-        return aspect_id_mapping, id_aspect_mapping
+
+        aspect_key_ids, aspect_val_ids = \
+            aspect_key_le.transform(self.aspect_keys), aspect_val_le.transform(self.aspect_vals)
+        aspect_val_key_mapping = dict(zip(aspect_key_ids, aspect_val_ids))
+
+        return aspect_id_mapping, id_aspect_mapping, aspect_val_key_mapping
 
     def make_pairs(self, aspects: list):
         """
@@ -71,10 +87,14 @@ class GraphExtractor:
         :param aspects:
         :return: aspect pairs from the same item
         """
+
+        def func(x: str):  # get aspect value
+            return x.split(': ')[1]
+
         pairs = []
         for i in range(len(aspects)):
             for j in range(i+1, len(aspects)):
-                a_i, a_j = self.aspect_id_mapping[aspects[i]], self.aspect_id_mapping[aspects[j]]
+                a_i, a_j = self.aspect_id_mapping[func(aspects[i])], self.aspect_id_mapping[func(aspects[j])]
                 if aspects[i] < aspects[j]:
                     pairs.append((a_i, a_j))
                 else:
@@ -118,11 +138,15 @@ class GraphExtractor:
             with open(self.cf.id_to_aspect_cache, 'wb') as handler:
                 pickle.dump(self.id_aspect_mapping, handler, protocol=pickle.HIGHEST_PROTOCOL)
 
+            # dump aspect key value mapping
+            with open(self.cf.edge_label_cache, 'wb') as handler:
+                pickle.dump(self.aspect_val_key_mapping, handler, protocol=pickle.HIGHEST_PROTOCOL)
+
             self.logging.info('Done')
 
 
 if __name__ == '__main__':
     config = Configuration('../', suffix='ebay-mlc', file_name='validation_set.tsv')
-
+    # config = Configuration('../', suffix='flipkart', file_name='flipkart_com-ecommerce_sample.csv')
     kg_extractor = GraphExtractor(cf=config, dump_file=True)
     kg_extractor.dump_to_file()
