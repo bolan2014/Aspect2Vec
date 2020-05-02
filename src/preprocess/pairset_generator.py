@@ -7,6 +7,9 @@ from src.utils.config import Configuration
 class PairsetGenerator(object):
     def __init__(self, df, category: list, negative_ratio=5):
         self.origin_df = df[df["category"].isin(category)].reset_index()
+        if len(self.origin_df) == 0:
+            logging.error("no such categories in the dataframe")
+        self.origin_df["uniq_id"] = self.origin_df["uniq_id"].astype(str)
         self.negative_ratio=negative_ratio
         self.category = category
         self.total_pos = 2000
@@ -16,9 +19,9 @@ class PairsetGenerator(object):
             listings_df = self.origin_df
         pairs = []
         if category:
-            listings_df = listings_df[listings_df["category"] == category].reset_index()
+            listings_df = listings_df[listings_df["category"] == category].reset_index(drop=True)
         else:
-            listings_df = listings_df.reset_index()
+            listings_df = listings_df.reset_index(drop=True)
         for i in range(len(listings_df)):
             for j in range(i + 1, len(listings_df)):
                 idx_i, idx_j = listings_df.loc[i, "uniq_id"], listings_df.loc[j, "uniq_id"]
@@ -55,12 +58,12 @@ class PairsetGenerator(object):
         neg_len = self.total_pos * self.negative_ratio
         from src.preprocess.lsh_retriever import LshRetriever
         from random import sample
-        lsh_retriever = LshRetriever(in_df=df, category=self.category, threshold=0.6, num_perm=16)
+        lsh_retriever = LshRetriever(in_df=self.origin_df, category=self.category, threshold=0.6, num_perm=16)
         lsh_retriever.bulid_lsh(minhash_col="aspects", separator='|', index_col="uniq_id")
 
         logging.info("negative sampling...")
         for cluster in self.origin_df["cluster"].value_counts().index:
-            key = self.origin_df[self.origin_df["cluster"]==cluster].sample(n=1, axis=0).reset_index()
+            key = self.origin_df[self.origin_df["cluster"]==cluster].sample(n=1, axis=0).reset_index(drop=True)
             candidate_idx = lsh_retriever.query(key.loc[0, "uniq_id"])
             candidates = self.make_pairs(listings_df=self.origin_df[self.origin_df["uniq_id"].isin(candidate_idx)])
             candidates = [i for i in candidates if i[-1] == 0]
@@ -86,11 +89,11 @@ class PairsetGenerator(object):
 
 
 if __name__ == '__main__':
-    config = Configuration('../../', suffix='flipkart')
+    config = Configuration('../../', suffix='ebay-mlc')
     # category: "clothing", "jewellery", "footwear", "mobiles & accessories"
 
     df = pd.read_csv(config.cleaned_data_file, sep='\t')
-    pair_generator = PairsetGenerator(df, category=["clothing", "jewellery", "footwear", "mobiles & accessories"], negative_ratio=5)
+    pair_generator = PairsetGenerator(df, category=["5"], negative_ratio=5)
     pairset = pair_generator.generate_pairset(output_file=config.pairset_data_file)
 
     pd.set_option("display.max_columns", None)
@@ -99,11 +102,6 @@ if __name__ == '__main__':
     print("total size", len(pairset))
     print("True size", len(pairset[pairset["label"]==1]))
     print("False size", len(pairset[pairset["label"]==0]))
-
-
-
-
-
 
 
 

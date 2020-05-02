@@ -41,7 +41,8 @@ class LshRetriever(object):
             self.lsh.insert(key, minhash)
 
     def query(self,  m_index):
-        m_query = self.in_df[self.in_df[self.index_col] == m_index].reset_index().loc[0, "minhash"]
+        self.in_df[self.index_col] = self.in_df[self.index_col].astype(str)
+        m_query = self.in_df[self.in_df[self.index_col] == str(m_index)].reset_index(drop=True).loc[0, "minhash"]
         if m_index in self.lsh:
             result = self.lsh.query(m_query)
             return result
