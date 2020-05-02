@@ -21,7 +21,7 @@ class GraphExtractor:
         self.delimiter = delimiter
         self.dump_file = dump_file
         self.item_aspect = self.get_aspect_from_file()
-        self.aspect_keys, self.aspect_vals = self.flatten()
+        self.aspect_keys, self.aspect_vals, self.aspect_by_item = self.flatten()
         self.aspect_id_mapping, self.id_aspect_mapping, self.aspect_val_key_mapping = self.build_encoder()
         self.edges = self.make_edges()
 
@@ -42,17 +42,22 @@ class GraphExtractor:
         return item_aspect
 
     def flatten(self):
-        aspect_keys, aspect_vals = [], []
+        aspect_keys, aspect_vals, aspect_by_item = [], [], []
         for aspects in tqdm(self.item_aspect):
             for aspect in aspects:
-                # print(aspect)
-                key, val = aspect.split(': ')
-                aspect_keys.append(key)
-                aspect_vals.append(val)
+                # only one key-value pair
+                temp_aspect = []
+                key_val = aspect.split(': ')
+                if len(key_val) == 2:
+                    key, val = key_val
+                    aspect_keys.append(key)
+                    aspect_vals.append(val)
+                    temp_aspect.append(val)
+            aspect_by_item.append(temp_aspect)
         assert len(aspect_keys) == len(aspect_vals)
         # example: ['inseam: 28', 'size type: regular', 'rise: mid-rise', 'wash: colored']
         self.logging.info('total aspect size: {}'.format(len(aspect_keys)))
-        return aspect_keys, aspect_vals
+        return aspect_keys, aspect_vals, aspect_by_item
 
     def build_encoder(self):
         """
@@ -142,6 +147,10 @@ class GraphExtractor:
             # dump aspect key value mapping
             with open(self.cf.edge_label_cache, 'wb') as handler:
                 pickle.dump(self.aspect_val_key_mapping, handler, protocol=pickle.HIGHEST_PROTOCOL)
+
+            # dump aspect by item
+            with open(self.cf.aspect_by_item_cache, 'wb') as handler:
+                pickle.dump(self.aspect_by_item, handler, protocol=pickle.HIGHEST_PROTOCOL)
 
             self.logging.info('Done')
 

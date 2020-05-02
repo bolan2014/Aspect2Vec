@@ -22,6 +22,7 @@ class GraphInitializer(object):
         self.graph = self.build_graph()
         self.node_labels = self.get_node_label()
         self.node_index = self.get_node_name()
+        self.aspect_by_item = self.get_aspect_by_item()
 
     def build_graph(self):
         """
@@ -71,11 +72,17 @@ class GraphInitializer(object):
             self.logging.info("load {} node names from cache file".format(len(names)))
             return names
 
+    def get_aspect_by_item(self):
+        """
+        [[aspect1, aspect2], [], ...]
+        :return:
+        """
+        with open(self.cf.aspect_by_item_cache, "rb") as handler:
+            aspect_by_item = pickle.load(handler)
+            self.logging.info("load aspect of {} items from cache file".format(len(aspect_by_item)))
+            return aspect_by_item
+
 
 if __name__ == '__main__':
     CF = Configuration(base_path='../../', suffix='ebay-mlc', file_name='')
     initializer = GraphInitializer(CF)
-
-    print(len(initializer.graph.nodes))
-    print(len(initializer.graph.edges))
-    print(len(initializer.node_labels))
