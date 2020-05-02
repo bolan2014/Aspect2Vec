@@ -71,14 +71,22 @@ class PairsetGenerator(object):
             neg_pairs.extend(candidates)
             if len(set(neg_pairs)) >= neg_len:
                 break
-        if len(set(neg_pairs)) > neg_len:
+        if len(set(neg_pairs)) > neg_len*1.1:
+            logging.info(f"assert size of neg_pairs-- actual size: {len(set(neg_pairs))}, expect size: {neg_len}")
             neg_pairs = sample(neg_pairs, neg_len)
+        elif len(set(neg_pairs)) < neg_len*0.9:
+            logging.info(f"assert size of neg_pairs-- actual size: {len(set(neg_pairs))}, expect size: {neg_len}")
+            while len(set(neg_pairs)) < neg_len*0.9:
+                candidates = self.origin_df.sample(n=2, axis=0).reset_index(drop=True)
+                pair = self.make_pairs(listings_df=candidates)
+                if pair[0][-1] == 0:
+                    neg_pairs.extend(pair)
         neg_pairs = set(neg_pairs)
         print("neg_pairs", len(neg_pairs))
         return neg_pairs
 
-    def generate_pairset(self, output_file=None):
-        pos = self.postive_sampling()
+    def generate_pairset(self, postive_restrict=None, output_file=None):
+        pos = self.postive_sampling(max_size=postive_restrict)
         neg = self.negative_sampling()
         pair_set = pd.DataFrame(pos.union(neg))
         pair_set.columns = ["uniq_id_1", "uniq_id_2", "aspects_1", "aspects_2", "category", "label"]
@@ -93,8 +101,8 @@ if __name__ == '__main__':
     # category: "clothing", "jewellery", "footwear", "mobiles & accessories"
 
     df = pd.read_csv(config.cleaned_data_file, sep='\t')
-    pair_generator = PairsetGenerator(df, category=["5"], negative_ratio=5)
-    pairset = pair_generator.generate_pairset(output_file=config.pairset_data_file)
+    pair_generator = PairsetGenerator(df, category=['2', '5'], negative_ratio=5)
+    pairset = pair_generator.generate_pairset(postive_restrict=None, output_file=config.pairset_data_file)
 
     pd.set_option("display.max_columns", None)
     pd.set_option("display.max_colwidth", 200)
