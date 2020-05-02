@@ -90,6 +90,7 @@ class PairsetGenerator(object):
         neg = self.negative_sampling()
         pair_set = pd.DataFrame(pos.union(neg))
         pair_set.columns = ["uniq_id_1", "uniq_id_2", "aspects_1", "aspects_2", "category", "label"]
+        pair_set.sort_values(by="category", inplace=True)
 
         if output_file:
             pair_set.to_csv(output_file, sep='\t', index=False)
@@ -97,11 +98,11 @@ class PairsetGenerator(object):
 
 
 if __name__ == '__main__':
-    config = Configuration('../../', suffix='ebay-mlc')
+    config = Configuration('../../', suffix='flipkart')
     # category: "clothing", "jewellery", "footwear", "mobiles & accessories"
 
     df = pd.read_csv(config.cleaned_data_file, sep='\t')
-    pair_generator = PairsetGenerator(df, category=['2', '5'], negative_ratio=5)
+    pair_generator = PairsetGenerator(df, category=["clothing", "jewellery", "footwear", "mobiles & accessories"], negative_ratio=5)
     pairset = pair_generator.generate_pairset(postive_restrict=None, output_file=config.pairset_data_file)
 
     pd.set_option("display.max_columns", None)

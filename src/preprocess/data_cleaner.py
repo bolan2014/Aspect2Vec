@@ -10,12 +10,30 @@ pd.set_option("display.width", 500)
 pd.set_option("display.max_colwidth", 200)
 
 
+def drop_nonsense_aspect(aspt_dict):
+    _aspt_dict = {}
+    for k, v in aspt_dict.items():
+        if v.find("unknown") >= 0 \
+                or v.find("does not apply") >= 0 \
+                or v.find("unbranded") >= 0 \
+                or v.find("no") >= 0 \
+                or v.find("none") >= 0 \
+                or v.find("na") >= 0 \
+                or k.find("other details") >= 0:
+            pass
+        else:
+            _aspt_dict[k] = v
+
+    return _aspt_dict
+
+
 def clean_mlc_aspects(aspt_str, return_dict=False):
     def mlc_data_check(aspt_str):
         aspt_list = aspt_str.lower().split(',')
         aspt = ','.join(i for i in aspt_list if i.find(':') > 0)
         aspt_list = aspt.split(':')
-        aspt = ':'.join(i for idx, i in enumerate(aspt_list) if i.find(',') > 0 or idx == 0 or idx == len(aspt_list) - 1)
+        aspt = ':'.join(
+            i for idx, i in enumerate(aspt_list) if i.find(',') > 0 or idx == 0 or idx == len(aspt_list) - 1)
         return aspt
 
     aspt_str = aspt_str.replace('(', '').replace(')', '').replace('"', '')
@@ -24,10 +42,13 @@ def clean_mlc_aspects(aspt_str, return_dict=False):
         aspt_dict = json.loads(aspt)
     except json.JSONDecodeError:
         aspt_dict = defaultdict(lambda: 'None')
+    aspt_dict = drop_nonsense_aspect(aspt_dict)
     if return_dict:
         return aspt_dict
-    else:
+    elif aspt_dict:
         return '|'.join([f"{k}: {v}" for k, v in aspt_dict.items()])
+    else:
+        return "None"
 
 
 def extract_flipkart_category(categ_str):
@@ -40,7 +61,7 @@ def extract_flipkart_category(categ_str):
         return categ_str.lstrip('[').rstrip(']').strip('\"')
 
 
-def clean_flipkart_aspects(aspt_str, brand_str=None):
+def clean_flipkart_aspects(aspt_str, brand_str=None, return_dict=False):
     def flipkart_aspt_data_check(aspt_str):
         if not isinstance(aspt_str, str):
             return None
@@ -69,11 +90,18 @@ def clean_flipkart_aspects(aspt_str, brand_str=None):
             print("lost key or value", i)
     if isinstance(brand_str, str):
         aspt_dict["brand"] = brand_str.lower().strip()
-    return '|'.join([f"{k}: {v}" for k, v in aspt_dict.items()])
+    aspt_dict = drop_nonsense_aspect(aspt_dict)
+    if return_dict:
+        return aspt_dict
+    elif aspt_dict:
+        return '|'.join([f"{k}: {v}" for k, v in aspt_dict.items()])
+    else:
+        return "None"
 
 
 if __name__ == '__main__':
     import argparse
+
     parser = argparse.ArgumentParser()
     parser.add_argument('--data')
     args = parser.parse_args()
@@ -81,11 +109,12 @@ if __name__ == '__main__':
         config = Configuration('../../', suffix='ebay-mlc', file_name='validation_set.tsv')
         df = pd.read_csv(config.origin_file, sep='\t')
         df = df[["index", "leaf_categ_id", "attributes", "auct_titl", "cluster"]]
-        df = df.rename(columns={"index": "uniq_id", "leaf_categ_id": "category", "auct_titl": "title", "attributes": "aspects"})
+        df = df.rename(
+            columns={"index": "uniq_id", "leaf_categ_id": "category", "auct_titl": "title", "attributes": "aspects"})
         print(df.columns)
         print(df.shape)
         df["aspects"] = df["aspects"].apply(lambda x: clean_mlc_aspects(x))
-        df = df[df["aspects"] != '']
+        df = df[df["aspects"] != "None"]
         print("dataset shape after cleaning the aspects: ", df.shape)
 
         df.sort_values(by="category", inplace=True)
@@ -95,7 +124,8 @@ if __name__ == '__main__':
         config = Configuration('../../', suffix='flipkart', file_name='flipkart_com-ecommerce_sample.csv')
         df = pd.read_csv(config.origin_file, sep=',')
         df = df[["uniq_id", "product_category_tree", "product_specifications", "product_url", "brand", "product_name"]]
-        df = df.rename(columns={"product_category_tree": "category", "product_specifications": "aspects", "product_name": "cluster"})
+        df = df.rename(columns={"product_category_tree": "category", "product_specifications": "aspects",
+                                "product_name": "cluster"})
         print(df.columns)
         print(df.shape)
         df["category"] = df["category"].apply(lambda x: extract_flipkart_category(x))
@@ -113,4 +143,3 @@ if __name__ == '__main__':
 
         df.sort_values(by="category", inplace=True)
         df.to_csv(config.cleaned_data_file, sep='\t', header=True, index=False)
-
