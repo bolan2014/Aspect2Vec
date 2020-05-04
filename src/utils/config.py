@@ -14,7 +14,7 @@ logging.basicConfig(level=logging.DEBUG,
 
 
 class Configuration(object):
-    def __init__(self, base_path, suffix, file_name=None):
+    def __init__(self, base_path, suffix, file_name=''):
         self.logging = logging
         self.data_prefix = os.path.join(base_path, 'data', suffix)
         self.cache_prefix = os.path.join(base_path, 'cache', suffix)
@@ -28,7 +28,8 @@ class Configuration(object):
         self.edge_label_file = os.path.join(self.data_prefix, 'edge_labels.txt')
         self.edge_label_cache = os.path.join(self.cache_prefix, 'edge_labels.pkl')
         self.origin_file = os.path.join(self.data_prefix, file_name)
-        self.cleaned_data_file = os.path.join(self.data_prefix, '{}_dataset.csv'.format(suffix))
+        self.cleaned_data_file = os.path.join(self.data_prefix, '{}_dataset.tsv'.format(suffix))
+        self.pairset_data_file = os.path.join(self.data_prefix, '{}_pairset.tsv'.format(suffix))
 
 
 if __name__ == '__main__':
