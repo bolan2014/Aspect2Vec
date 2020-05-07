@@ -44,10 +44,10 @@ class GraphExtractor:
     def flatten(self):
         aspect_keys, aspect_vals, aspect_by_item = [], [], []
         for aspects in tqdm(self.item_aspect):
+            temp_aspect = []
             for aspect in aspects:
                 # only one key-value pair
-                temp_aspect = []
-                key_val = aspect.split(': ')
+                key_val = aspect.split(': ', 1)
                 if len(key_val) == 2:
                     key, val = key_val
                     aspect_keys.append(key)
@@ -95,12 +95,16 @@ class GraphExtractor:
         """
 
         def func(x: str):  # get aspect value
-            return x.split(': ')[1]
+            return x.split(': ', 1)[1]
 
         pairs = []
         for i in range(len(aspects)):
             for j in range(i+1, len(aspects)):
-                a_i, a_j = self.aspect_id_mapping[func(aspects[i])], self.aspect_id_mapping[func(aspects[j])]
+                try:
+                    a_i, a_j = self.aspect_id_mapping[func(aspects[i])], self.aspect_id_mapping[func(aspects[j])]
+                except IndexError:
+                    self.logging.debug('Index error - no valid aspect')
+                    continue
                 if aspects[i] < aspects[j]:
                     pairs.append((a_i, a_j))
                 else:
@@ -147,16 +151,26 @@ class GraphExtractor:
             # dump aspect key value mapping
             with open(self.cf.edge_label_cache, 'wb') as handler:
                 pickle.dump(self.aspect_val_key_mapping, handler, protocol=pickle.HIGHEST_PROTOCOL)
+            with open(self.cf.edge_label_file, 'w') as handler:
+                for key, val in self.aspect_val_key_mapping.items():
+                    handler.write('{} {}\n'.format(key, val))
 
             # dump aspect by item
             with open(self.cf.aspect_by_item_cache, 'wb') as handler:
                 pickle.dump(self.aspect_by_item, handler, protocol=pickle.HIGHEST_PROTOCOL)
 
+            # dump aspect id corpus
+            with open(self.cf.aspect_id_corpus, 'w') as handler:
+                def to_id(x):
+                    return self.aspect_id_mapping[x]
+                for aspects in self.aspect_by_item:
+                    handler.write('{}\n'.format(' '.join(map(str, map(to_id, aspects)))))
+
             self.logging.info('Done')
 
 
 if __name__ == '__main__':
-    config = Configuration('../', suffix='ebay-mlc', file_name='validation_set.tsv')
-    # config = Configuration('../', suffix='flipkart', file_name='flipkart_com-ecommerce_sample.csv')
+    # config = Configuration('../', suffix='ebay-mlc', file_name='validation_set.tsv')
+    config = Configuration('../', suffix='flipkart', file_name='flipkart_com-ecommerce_sample.csv')
     kg_extractor = GraphExtractor(cf=config, dump_file=True)
     kg_extractor.dump_to_file()
