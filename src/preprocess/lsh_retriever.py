@@ -1,6 +1,5 @@
 from datasketch import MinHash, MinHashLSH
 from tqdm import tqdm
-import logging
 import pickle
 import logging
 import os

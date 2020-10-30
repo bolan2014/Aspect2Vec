@@ -5,10 +5,50 @@ from collections import defaultdict
 from src.utils.config import Configuration
 
 pd.set_option("display.max_columns", None)
-# pd.set_option("display.max_rows", None)
 pd.set_option("display.width", 500)
 pd.set_option("display.max_colwidth", 200)
 
+
+def clean_and_dump_dataset(config, dump_flag=True):
+    if config.data_tag == 'mlc':
+        df = pd.read_csv(config.origin_file, sep='\t')
+        df = df[["index", "leaf_categ_id", "attributes", "auct_titl", "cluster"]]
+        df = df.rename(
+            columns={"index": "uniq_id", "leaf_categ_id": "category", "auct_titl": "title", "attributes": "aspects"})
+        print(df.columns)
+        config.logging.info(f"Raw data shaped in {df.shape}")
+        df["aspects"] = df["aspects"].apply(lambda x: clean_mlc_aspects(x))
+        df = df[df["aspects"] != "None"]
+        config.logging.info(f"Cleaned data shaped in{df.shape}")
+
+        df.sort_values(by="category", inplace=True)
+        if dump_flag:
+            df.to_csv(config.cleaned_data_file, sep='\t', header=True, index=False)
+    elif config.data_tag == 'flipkart':
+        df = pd.read_csv(config.origin_file, sep=',')
+        df = df[["uniq_id", "product_category_tree", "product_specifications", "product_url", "brand", "product_name"]]
+        df = df.rename(columns={"product_category_tree": "category", "product_specifications": "aspects",
+                                "product_name": "cluster"})
+        print(df.columns)
+        config.logging.info(f"Raw data shaped in {df.shape}")
+        df["category"] = df["category"].apply(lambda x: extract_flipkart_category(x))
+
+        categ_filter = [v for v, c in pd.DataFrame(df["category"].value_counts()).iterrows() if c[0] >= 100]
+        df = df[df["category"].isin(categ_filter)]
+        print(df["category"].value_counts())
+        config.logging.info(f"Dataset shape after cleaning the category: {df.shape}")
+
+        df["aspects"] = df.apply(lambda x: clean_flipkart_aspects(x["aspects"], x["brand"]), axis=1)
+        df = df[df["aspects"] != "None"]
+        config.logging.info(f"Dataset shape after cleaning the aspects: {df.shape}")
+
+        df.sort_values(by="category", inplace=True)
+        if dump_flag:
+            df.to_csv(config.cleaned_data_file, sep='\t', header=True, index=False)
+    else:
+        df = None
+        config.logging.error("Data not loaded")
+    return df
 
 def drop_nonsense_aspect(aspt_dict):
     _aspt_dict = {}
@@ -100,46 +140,6 @@ def clean_flipkart_aspects(aspt_str, brand_str=None, return_dict=False):
 
 
 if __name__ == '__main__':
-    import argparse
-
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--data')
-    args = parser.parse_args()
-    if args.data == 'mlc':
-        config = Configuration('../../', suffix='ebay-mlc', file_name='validation_set.tsv')
-        df = pd.read_csv(config.origin_file, sep='\t')
-        df = df[["index", "leaf_categ_id", "attributes", "auct_titl", "cluster"]]
-        df = df.rename(
-            columns={"index": "uniq_id", "leaf_categ_id": "category", "auct_titl": "title", "attributes": "aspects"})
-        print(df.columns)
-        print(df.shape)
-        df["aspects"] = df["aspects"].apply(lambda x: clean_mlc_aspects(x))
-        df = df[df["aspects"] != "None"]
-        print("dataset shape after cleaning the aspects: ", df.shape)
-
-        df.sort_values(by="category", inplace=True)
-        df.to_csv(config.cleaned_data_file, sep='\t', header=True, index=False)
-
-    elif args.data == 'flipkart':
-        config = Configuration('../../', suffix='flipkart', file_name='flipkart_com-ecommerce_sample.csv')
-        df = pd.read_csv(config.origin_file, sep=',')
-        df = df[["uniq_id", "product_category_tree", "product_specifications", "product_url", "brand", "product_name"]]
-        df = df.rename(columns={"product_category_tree": "category", "product_specifications": "aspects",
-                                "product_name": "cluster"})
-        print(df.columns)
-        print(df.shape)
-        df["category"] = df["category"].apply(lambda x: extract_flipkart_category(x))
-        d = pd.DataFrame(df["category"].value_counts())
-
-        categ_filter = [v for v, c in pd.DataFrame(df["category"].value_counts()).iterrows() if c[0] >= 100]
-        df = df[df["category"].isin(categ_filter)]
-        print(df["category"].value_counts())
-        print("dataset shape after cleaning the category: ", df.shape)
-
-        df["aspects"] = df.apply(lambda x: clean_flipkart_aspects(x["aspects"], x["brand"]), axis=1)
-        df = df[df["aspects"] != "None"]
-        print("dataset shape after cleaning the aspects: ", df.shape)
-        print(df.head())
-
-        df.sort_values(by="category", inplace=True)
-        df.to_csv(config.cleaned_data_file, sep='\t', header=True, index=False)
+    cf = Configuration('../../', suffix='flipkart', file_name='flipkart_com-ecommerce_sample.csv')
+    # cf = Configuration('../../', suffix='ebay', file_name='human_labeled_set.tsv')
+    clean_and_dump_dataset(config=cf)

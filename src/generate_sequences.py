@@ -7,24 +7,26 @@
 """
 
 from src.utils.config import Configuration
-from src.utils.initializer import GraphInitializer
-from src.utils.dedicated_walker import Walker
+from src.graph_embedding.initializer import GraphInitializer
+from src.graph_embedding.dedicated_walker import Walker
 
-config = Configuration(base_path='../', suffix='ebay-mlc', file_name='validation_set.tsv')
+config = Configuration(base_path='../', suffix='flipkart', file_name='flipkart_com-ecommerce_sample.csv')
 
-init = GraphInitializer(cf=config)
+init = GraphInitializer(config=config)
 
 # print(init.node_labels)
 
 walker = Walker(
     G=init.graph,
+    config=config,
     node_labels=init.node_labels,
-    seq_labels=[2, 3, 4, 5, 6, 7, 8, 9],
+    seq_length= 8,
     alpha=1.,
     beta=1.
 )
 
-start_node = 1
-
-trvs = walker.traverse(start_node)
-print(' '.join(map(lambda x: init.node_index[x], trvs)))
+seqs = walker.traverse()
+print(len(seqs))
+print(seqs[:10])
+for i in seqs[:10]:
+    print('|'.join(map(lambda x: init.node_index[x], i)))
