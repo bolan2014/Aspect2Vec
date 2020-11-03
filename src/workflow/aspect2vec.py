@@ -13,6 +13,7 @@ from src.preprocess.pairset_generator import PairsetGenerator
 from src.graph_embedding.graph_extractor import GraphExtractor
 from src.graph_embedding.initializer import GraphInitializer
 from src.graph_embedding.dedicated_walker import Walker
+from src.graph_embedding.walk2vec import walk_to_vec
 
 
 if __name__ == '__main__':
@@ -38,6 +39,7 @@ if __name__ == '__main__':
         beta=1.
     )
     seqs = walker.traverse(dump_flag=True)
+    walk_to_vec(cf, dim=100, model="skipgram")
 
 
 

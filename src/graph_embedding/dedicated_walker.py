@@ -21,22 +21,31 @@ class Walker(object):
         self.beta = beta
         self.cf = config
 
-    def traverse(self, dump_flag=True):
+    def traverse(self, n=100000, dump_flag=True):
         """
         generate a traversal sequence from each node
+        :param n:
         :param dump_flag:
         :param node:
         :return:
         """
         sequences = []
         self.cf.logging.info("generating walk sequences...")
+        cnt = 0
         for node in tqdm(self.G):
+            if cnt > n:
+                break
             seq = self.walk(start_node=node)
             sequences.append(seq)
+            cnt += 1
+
         if dump_flag:
             # dump walk sequences
-            with open(self.cf.sequences_file, 'wb') as handler:
-                pickle.dump(sequences, handler, protocol=pickle.HIGHEST_PROTOCOL)
+            with open(self.cf.sequences_file, 'w') as handler:
+                for s in sequences:
+                    s = list(map(str, s))
+                    handler.write(' '.join(s)+'\n')
+                    # pickle.dump(sequences, handler, protocol=pickle.HIGHEST_PROTOCOL)
         return sequences
 
     def walk(self, start_node):
